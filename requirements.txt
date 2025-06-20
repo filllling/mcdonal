@@ -3,4 +3,3 @@ gunicorn
 pymysql
 flask-login
 pandas 
-os
