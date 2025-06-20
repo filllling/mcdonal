@@ -1,0 +1,407 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="order-detail-page">
+    <!-- 页面头部 -->
+    <div class="page-header">
+        <h1 class="page-title">📋 订单详情</h1>
+        <p class="page-subtitle">订单号: #{{ order.id }}</p>
+    </div>
+
+    <!-- 订单信息卡片 -->
+    <div class="order-info-card">
+        <div class="order-info-header">
+            <h2>📦 订单信息</h2>
+            <div class="order-status-badges">
+                <span class="status-badge status-{{ order.status.lower() }}">
+                    {{ order.status }}
+                </span>
+                <span class="payment-badge payment-{{ order.payment_status.lower() }}">
+                    {{ order.payment_status }}
+                </span>
+            </div>
+        </div>
+        
+        <div class="order-info-grid">
+            <div class="info-item">
+                <span class="info-label">📅 下单时间</span>
+                <span class="info-value">{{ order.order_time }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">💰 订单总价</span>
+                <span class="info-value total-price">¥{{ "%.2f"|format(order.total_price) }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">📊 订单状态</span>
+                <span class="info-value">{{ order.status }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">💳 支付状态</span>
+                <span class="info-value">{{ order.payment_status }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 商品详情卡片 -->
+    <div class="items-card">
+        <div class="items-header">
+            <h2>🛍️ 商品详情</h2>
+            <span class="items-count">共 {{ order_items|length }} 种商品</span>
+        </div>
+        
+        <div class="items-list">
+            {% for item in order_items %}
+            <div class="item-card">
+                <div class="item-info">
+                    <h3 class="item-name">{{ item.name }}</h3>
+                    <p class="item-description">{{ item.description }}</p>
+                </div>
+                
+                <div class="item-details">
+                    <div class="item-quantity">
+                        <span class="quantity-label">数量</span>
+                        <span class="quantity-value">{{ item.quantity }}</span>
+                    </div>
+                    <div class="item-price">
+                        <span class="price-label">单价</span>
+                        <span class="price-value">¥{{ "%.2f"|format(item.unit_price) }}</span>
+                    </div>
+                    <div class="item-subtotal">
+                        <span class="subtotal-label">小计</span>
+                        <span class="subtotal-value">¥{{ "%.2f"|format(item.subtotal) }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- 操作按钮 -->
+    <div class="action-buttons">
+        <a href="{{ url_for('order.my_orders') }}" class="back-btn">
+            ← 返回订单列表
+        </a>
+    </div>
+</div>
+
+<style>
+/* 页面整体样式 */
+.order-detail-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+    padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* 页面头部 */
+.page-header {
+    text-align: center;
+    margin-bottom: 30px;
+    color: white;
+}
+
+.page-title {
+    font-size: 2.5em;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.page-subtitle {
+    font-size: 1.2em;
+    opacity: 0.9;
+    font-weight: 300;
+}
+
+/* 订单信息卡片 */
+.order-info-card {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.order-info-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #74b9ff, #0984e3);
+}
+
+.order-info-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.order-info-header h2 {
+    color: #2d3436;
+    font-size: 1.5em;
+    font-weight: 700;
+    margin: 0;
+}
+
+.order-status-badges {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.status-badge, .payment-badge {
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 0.8em;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-badge {
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+    color: white;
+}
+
+.status-已完成 {
+    background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+}
+
+.status-制作中 {
+    background: linear-gradient(135deg, #fdcb6e 0%, #e17055 100%);
+}
+
+.status-待制作 {
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+}
+
+.status-已取消 {
+    background: linear-gradient(135deg, #636e72 0%, #2d3436 100%);
+}
+
+.payment-badge {
+    background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+    color: white;
+}
+
+.payment-未支付 {
+    background: linear-gradient(135deg, #e17055 0%, #d63031 100%);
+}
+
+.order-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.info-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.info-label {
+    font-size: 0.9em;
+    color: #636e72;
+    font-weight: 500;
+}
+
+.info-value {
+    font-size: 1.1em;
+    color: #2d3436;
+    font-weight: 600;
+}
+
+.total-price {
+    font-size: 1.3em;
+    color: #e17055;
+    font-weight: 700;
+}
+
+/* 商品详情卡片 */
+.items-card {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.items-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.items-header h2 {
+    color: #2d3436;
+    font-size: 1.5em;
+    font-weight: 700;
+    margin: 0;
+}
+
+.items-count {
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+    color: white;
+    border-radius: 15px;
+    font-size: 0.8em;
+    font-weight: 600;
+}
+
+.items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.item-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 15px;
+    border-left: 4px solid #74b9ff;
+    transition: all 0.3s ease;
+}
+
+.item-card:hover {
+    transform: translateX(5px);
+    box-shadow: 0 5px 15px rgba(116, 185, 255, 0.2);
+}
+
+.item-info {
+    flex: 1;
+}
+
+.item-name {
+    font-size: 1.2em;
+    font-weight: 700;
+    color: #2d3436;
+    margin-bottom: 5px;
+}
+
+.item-description {
+    color: #636e72;
+    font-size: 0.9em;
+    margin: 0;
+}
+
+.item-details {
+    display: flex;
+    gap: 30px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.item-quantity, .item-price, .item-subtotal {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.quantity-label, .price-label, .subtotal-label {
+    font-size: 0.8em;
+    color: #636e72;
+    font-weight: 500;
+}
+
+.quantity-value, .price-value, .subtotal-value {
+    font-size: 1.1em;
+    font-weight: 700;
+    color: #2d3436;
+}
+
+.subtotal-value {
+    color: #e17055;
+}
+
+/* 操作按钮 */
+.action-buttons {
+    text-align: center;
+    margin-top: 30px;
+}
+
+.back-btn {
+    display: inline-block;
+    padding: 12px 30px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    text-decoration: none;
+    border-radius: 25px;
+    font-weight: 600;
+    font-size: 1em;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.back-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .order-detail-page {
+        padding: 15px;
+    }
+    
+    .page-title {
+        font-size: 2em;
+    }
+    
+    .order-info-card, .items-card {
+        padding: 20px;
+    }
+    
+    .order-info-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .order-info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .item-card {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+    }
+    
+    .item-details {
+        justify-content: space-between;
+        gap: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .order-detail-page {
+        padding: 10px;
+    }
+    
+    .page-title {
+        font-size: 1.8em;
+    }
+    
+    .order-info-card, .items-card {
+        padding: 15px;
+    }
+    
+    .item-details {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+</style>
+{% endblock %} 

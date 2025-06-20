@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+.login-container {
+    max-width: 350px;
+    margin: 60px auto;
+    padding: 32px 28px 24px 28px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.login-container h2 {
+    margin-bottom: 24px;
+    color: #222;
+    font-weight: 600;
+}
+.login-container label {
+    width: 100%;
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    font-size: 15px;
+    color: #444;
+}
+.login-container input[type="text"],
+.login-container input[type="password"] {
+    margin-top: 6px;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 15px;
+    transition: border 0.2s;
+}
+.login-container input[type="text"]:focus,
+.login-container input[type="password"]:focus {
+    border: 1.5px solid #007bff;
+    outline: none;
+}
+.login-container button[type="submit"] {
+    width: 100%;
+    padding: 10px 0;
+    background: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.login-container button[type="submit"]:hover {
+    background: #0056b3;
+}
+.login-container .register-link {
+    margin-top: 18px;
+    font-size: 14px;
+}
+.login-container .register-link a {
+    color: #007bff;
+    text-decoration: none;
+}
+.login-container .register-link a:hover {
+    text-decoration: underline;
+}
+.login-container .error-message {
+    color: #d32f2f;
+    background: #ffeaea;
+    border-radius: 5px;
+    padding: 8px 12px;
+    margin-bottom: 16px;
+    width: 100%;
+    text-align: center;
+    display: none; /* 默认隐藏，后端渲染时可显示 */
+}
+.login-container .password-row {
+    position: relative;
+    width: 100%;
+}
+@media (max-width: 500px) {
+    .login-container {
+        max-width: 98vw;
+        padding: 18px 6vw 16px 6vw;
+    }
+}
+</style>
+<div class="login-container">
+    <h2>登录</h2>
+    <div class="error-message" id="error-message">{{ error or '' }}</div>
+    <form method="post" autocomplete="off">
+        <label>用户名：
+            <input type="text" name="username" required autocomplete="off">
+        </label>
+        <label>密码：
+            <input type="password" name="password" id="password-input" required autocomplete="off">
+        </label>
+        <button type="submit">登录</button>
+    </form>
+    <div class="register-link">
+        没有账号？<a href="{{ url_for('auth.register') }}">注册</a>
+    </div>
+</div>
+<script>
+// 如果后端传递了 error，则显示错误提示
+window.onload = function() {
+    var error = document.getElementById('error-message');
+    if (error.textContent.trim() !== '') {
+        error.style.display = 'block';
+    }
+}
+</script>
+{% endblock %} 

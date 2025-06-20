@@ -1,0 +1,1682 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="analytics-header">
+    <h2><i class="fas fa-chart-line"></i> 灵活数据分析</h2>
+    <p class="subtitle">自定义查询条件，灵活分析业务数据</p>
+</div>
+
+<div class="analysis-container">
+    <!-- 查询配置区域 -->
+    <div class="config-panel">
+        <div class="panel-header">
+            <h3><i class="fas fa-cog"></i> 查询配置</h3>
+            <button type="button" onclick="togglePanel('config')" class="panel-toggle">
+                <i class="fas fa-chevron-up"></i>
+            </button>
+        </div>
+        
+        <div class="panel-content" id="configContent">
+            <!-- 表选择 -->
+            <div class="config-section">
+                <label class="section-label">
+                    <i class="fas fa-table"></i> 选择数据表
+                </label>
+                <select id="tableSelect" onchange="loadTableFields()" class="form-select">
+                    <option value="">请选择表</option>
+                    {% for table_name, table_info in tables.items() %}
+                    <option value="{{ table_name }}">{{ table_info.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- 字段选择 -->
+            <div class="config-section">
+                <label class="section-label">
+                    <i class="fas fa-columns"></i> 选择字段
+                </label>
+                <div class="field-controls">
+                    <button type="button" onclick="selectAllFields()" class="btn-small">全选</button>
+                    <button type="button" onclick="deselectAllFields()" class="btn-small">全不选</button>
+                    <button type="button" onclick="addAggregateField()" class="btn-small">添加聚合字段</button>
+                </div>
+                <div id="fieldSelection" class="field-grid">
+                    <!-- 字段选项将动态加载 -->
+                </div>
+                
+                <!-- 聚合字段配置 -->
+                <div id="aggregateFields" class="aggregate-section" style="display: none;">
+                    <h4><i class="fas fa-calculator"></i> 聚合字段配置</h4>
+                    <div id="aggregateFieldsList">
+                        <!-- 聚合字段将在这里显示 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 筛选条件 -->
+            <div class="config-section">
+                <label class="section-label">
+                    <i class="fas fa-filter"></i> 筛选条件
+                </label>
+                <div id="filterContainer">
+                    <div class="filter-row">
+                        <select class="filter-field form-select">
+                            <option value="">选择字段</option>
+                        </select>
+                        <select class="filter-operator form-select">
+                            <option value="=">=</option>
+                            <option value="!=">!=</option>
+                            <option value=">">></option>
+                            <option value="<"><</option>
+                            <option value=">=">>=</option>
+                            <option value="<="><=</option>
+                            <option value="LIKE">包含</option>
+                            <option value="IN">在列表中</option>
+                            <option value="IS NULL">为空</option>
+                            <option value="IS NOT NULL">不为空</option>
+                        </select>
+                        <input type="text" class="filter-value form-input" placeholder="值">
+                        <button type="button" onclick="removeFilter(this)" class="btn-remove">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="button" onclick="addFilter()" class="btn-add">
+                    <i class="fas fa-plus"></i> 添加筛选条件
+                </button>
+            </div>
+
+            <!-- 排序 -->
+            <div class="config-section">
+                <label class="section-label">
+                    <i class="fas fa-sort"></i> 排序
+                </label>
+                <div id="orderContainer">
+                    <div class="order-row">
+                        <select class="order-field form-select">
+                            <option value="">选择排序字段</option>
+                        </select>
+                        <select class="order-direction form-select">
+                            <option value="ASC">升序</option>
+                            <option value="DESC">降序</option>
+                        </select>
+                        <button type="button" onclick="removeOrder(this)" class="btn-remove">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="button" onclick="addOrder()" class="btn-add">
+                    <i class="fas fa-plus"></i> 添加排序字段
+                </button>
+            </div>
+
+            <!-- 分页设置 -->
+            <div class="config-section">
+                <label class="section-label">
+                    <i class="fas fa-list-ol"></i> 分页设置
+                </label>
+                <div class="pagination-settings">
+                    <input type="number" id="limitInput" value="100" min="1" max="1000" 
+                           placeholder="每页记录数" class="form-input">
+                    <span class="input-hint">最大1000条</span>
+                </div>
+            </div>
+
+            <!-- 执行查询 -->
+            <div class="config-section action-buttons">
+                <button type="button" onclick="executeQuery()" class="btn-execute">
+                    <i class="fas fa-play"></i> 执行查询
+                </button>
+                <button type="button" onclick="resetQuery()" class="btn-reset">
+                    <i class="fas fa-redo"></i> 重置
+                </button>
+                <button type="button" onclick="exportResults()" class="btn-export" id="exportBtn" disabled>
+                    <i class="fas fa-download"></i> 导出
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 结果展示区域 -->
+    <div class="result-panel">
+        <div class="panel-header">
+            <h3><i class="fas fa-chart-bar"></i> 查询结果</h3>
+            <div class="result-controls">
+                <button type="button" onclick="togglePanel('sql')" class="panel-toggle">
+                    <i class="fas fa-code"></i> SQL
+                </button>
+                <button type="button" onclick="togglePanel('chart')" class="panel-toggle">
+                    <i class="fas fa-chart-pie"></i> 图表
+                </button>
+            </div>
+        </div>
+        
+        <div class="panel-content">
+            <!-- SQL 显示 -->
+            <div class="sql-display" id="sqlPanel" style="display: none;">
+                <label class="section-label">
+                    <i class="fas fa-code"></i> 生成的 SQL
+                </label>
+                <pre id="sqlDisplay" class="sql-code">SELECT * FROM 表名 LIMIT 100</pre>
+                <button type="button" onclick="copySQL()" class="btn-copy">
+                    <i class="fas fa-copy"></i> 复制SQL
+                </button>
+            </div>
+
+            <!-- 图表区域 -->
+            <div class="chart-display" id="chartPanel" style="display: none;">
+                <label class="section-label">
+                    <i class="fas fa-chart-pie"></i> 数据可视化
+                </label>
+                <div class="chart-controls">
+                    <select id="chartType" class="form-select">
+                        <option value="table">表格</option>
+                        <option value="bar">柱状图</option>
+                        <option value="line">折线图</option>
+                        <option value="pie">饼图</option>
+                    </select>
+                    <button type="button" onclick="generateChart()" class="btn-small">生成图表</button>
+                </div>
+                <div id="chartContainer" class="chart-container">
+                    <!-- 图表将在这里显示 -->
+                </div>
+            </div>
+
+            <!-- 结果统计 -->
+            <div class="result-stats">
+                <div class="stat-item">
+                    <i class="fas fa-database"></i>
+                    <span id="resultCount">总记录数：0</span>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-clock"></i>
+                    <span id="resultTime">查询时间：0ms</span>
+                </div>
+                <div class="stat-item">
+                    <i class="fas fa-calendar"></i>
+                    <span id="resultDate"></span>
+                </div>
+            </div>
+
+            <!-- 数据表格 -->
+            <div class="table-container">
+                <div class="table-header">
+                    <h4>数据明细</h4>
+                    <div class="table-controls">
+                        <input type="text" id="tableSearch" placeholder="搜索数据..." class="form-input">
+                        <select id="tablePageSize" class="form-select">
+                            <option value="10">10条/页</option>
+                            <option value="25">25条/页</option>
+                            <option value="50">50条/页</option>
+                            <option value="100" selected>100条/页</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table id="resultTable" class="data-table">
+                        <thead>
+                            <tr>
+                                <!-- 表头将动态生成 -->
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- 数据行将动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 分页控件 -->
+            <div class="pagination">
+                <button onclick="changePage(-1)" id="prevBtn" class="btn-page">
+                    <i class="fas fa-chevron-left"></i> 上一页
+                </button>
+                <div class="page-info">
+                    <span id="pageInfo">第 1 页，共 1 页</span>
+                </div>
+                <button onclick="changePage(1)" id="nextBtn" class="btn-page">
+                    下一页 <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* 全局样式 */
+.analytics-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.analytics-header h2 {
+    margin: 0 0 10px 0;
+    font-size: 2.5em;
+    font-weight: 300;
+}
+
+.analytics-header .subtitle {
+    margin: 0;
+    font-size: 1.1em;
+    opacity: 0.9;
+}
+
+.analysis-container {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+/* 面板样式 */
+.config-panel, .result-panel, .variable-panel {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.panel-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 20px;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.panel-header h3 {
+    margin: 0;
+    color: #495057;
+    font-size: 1.3em;
+}
+
+.panel-toggle {
+    background: none;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.panel-toggle:hover {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.panel-content {
+    padding: 25px;
+}
+
+/* 配置区域样式 */
+.config-section {
+    margin-bottom: 25px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.section-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    font-weight: 600;
+    color: #495057;
+    font-size: 1.1em;
+}
+
+/* 表单控件样式 */
+.form-select, .form-input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.form-select:focus, .form-input:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+/* 字段选择样式 */
+.field-controls {
+    margin-bottom: 15px;
+    display: flex;
+    gap: 10px;
+}
+
+.btn-small {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background 0.3s ease;
+}
+
+.btn-small:hover {
+    background: #5a6268;
+}
+
+.field-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 10px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.field-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    transition: background 0.3s ease;
+}
+
+.field-item:hover {
+    background: #e9ecef;
+}
+
+.field-item input[type="checkbox"] {
+    transform: scale(1.2);
+}
+
+/* 聚合字段样式 */
+.aggregate-section {
+    margin-top: 20px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.aggregate-section h4 {
+    margin: 0 0 15px 0;
+    color: #495057;
+    font-size: 1.1em;
+}
+
+.aggregate-field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr auto;
+    gap: 10px;
+    margin-bottom: 12px;
+    align-items: center;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.aggregate-field-row select,
+.aggregate-field-row input {
+    padding: 8px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+/* 筛选、分组、排序行样式 */
+.filter-row, .order-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 10px;
+    margin-bottom: 12px;
+    align-items: center;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.order-row {
+    grid-template-columns: 1fr auto auto;
+}
+
+/* 按钮样式 */
+.btn-add, .btn-execute, .btn-reset, .btn-create, .btn-export {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-add:hover, .btn-execute:hover, .btn-create:hover {
+    background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.btn-reset {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+}
+
+.btn-reset:hover {
+    background: linear-gradient(135deg, #5a6268 0%, #495057 100%);
+}
+
+.btn-export {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+}
+
+.btn-export:hover {
+    background: linear-gradient(135deg, #1e7e34 0%, #155724 100%);
+}
+
+.btn-remove {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-remove:hover {
+    background: #c82333;
+    transform: scale(1.05);
+}
+
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+/* 结果区域样式 */
+.result-controls {
+    display: flex;
+    gap: 10px;
+}
+
+.sql-display, .chart-display {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border: 1px solid #e9ecef;
+}
+
+.sql-code {
+    background: #2d3748;
+    color: #e2e8f0;
+    padding: 15px;
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-x: auto;
+    margin: 10px 0;
+}
+
+.btn-copy {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.result-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    margin-bottom: 25px;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.stat-item i {
+    color: #007bff;
+    font-size: 1.2em;
+}
+
+/* 表格样式 */
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.table-controls {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.table-wrapper {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.data-table th {
+    background: linear-gradient(135deg, #495057 0%, #343a40 100%);
+    color: white;
+    padding: 15px 12px;
+    text-align: left;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.data-table td {
+    padding: 12px;
+    border-bottom: 1px solid #e9ecef;
+    transition: background 0.3s ease;
+}
+
+.data-table tbody tr:hover {
+    background: #f8f9fa;
+}
+
+.data-table tbody tr:nth-child(even) {
+    background: #f8f9fa;
+}
+
+/* 分页样式 */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    margin-top: 25px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.btn-page {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-page:hover:not(:disabled) {
+    background: #0056b3;
+    transform: translateY(-1px);
+}
+
+.btn-page:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.page-info {
+    font-weight: 500;
+    color: #495057;
+}
+
+/* 变量管理样式 */
+.variable-panel {
+    margin-top: 30px;
+}
+
+.variable-form {
+    margin-bottom: 30px;
+    padding: 25px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.variable-list {
+    border-top: 1px solid #dee2e6;
+    padding-top: 25px;
+}
+
+.variable-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.variable-item {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.variable-item:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.variable-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.variable-name {
+    font-weight: 600;
+    color: #007bff;
+    font-size: 1.1em;
+}
+
+.variable-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-edit, .btn-delete {
+    background: none;
+    border: none;
+    padding: 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.btn-edit {
+    color: #007bff;
+}
+
+.btn-delete {
+    color: #dc3545;
+}
+
+.btn-edit:hover {
+    background: rgba(0, 123, 255, 0.1);
+}
+
+.btn-delete:hover {
+    background: rgba(220, 53, 69, 0.1);
+}
+
+.variable-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.variable-expression {
+    font-family: 'Courier New', monospace;
+    background: #f8f9fa;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #495057;
+}
+
+.variable-table {
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.variable-description {
+    color: #6c757d;
+    font-style: italic;
+    margin-top: 8px;
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+    .analysis-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .config-panel {
+        order: 2;
+    }
+    
+    .result-panel {
+        order: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .analytics-header {
+        padding: 20px;
+    }
+    
+    .analytics-header h2 {
+        font-size: 2em;
+    }
+    
+    .panel-content {
+        padding: 15px;
+    }
+    
+    .filter-row, .order-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .table-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    
+    .table-controls {
+        flex-direction: column;
+    }
+    
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .variable-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.config-section, .variable-item {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* 加载状态 */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #007bff;
+    border-top: 2px solid transparent;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+
+<script>
+let currentPage = 1;
+let totalPages = 1;
+let currentTable = '';
+let currentFields = {};
+let currentResults = [];
+let chartInstance = null;
+
+// 面板折叠功能
+function togglePanel(panelType) {
+    const panels = {
+        'config': document.getElementById('configContent'),
+        'sql': document.getElementById('sqlPanel'),
+        'chart': document.getElementById('chartPanel'),
+        'variable': document.getElementById('variableContent')
+    };
+    
+    const panel = panels[panelType];
+    if (panel) {
+        const isVisible = panel.style.display !== 'none';
+        panel.style.display = isVisible ? 'none' : 'block';
+        
+        // 更新按钮图标
+        const button = event.target.closest('.panel-toggle');
+        if (button) {
+            const icon = button.querySelector('i');
+            if (icon) {
+                icon.className = isVisible ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+            }
+        }
+    }
+}
+
+// 加载表字段
+function loadTableFields() {
+    const tableSelect = document.getElementById('tableSelect');
+    const tableName = tableSelect.value;
+    const fieldSelection = document.getElementById('fieldSelection');
+    
+    if (!tableName) {
+        fieldSelection.innerHTML = '';
+        return;
+    }
+    
+    currentTable = tableName;
+    const tables = {{ tables|tojson }};
+    const tableInfo = tables[tableName];
+    currentFields = tableInfo.fields;
+    
+    fieldSelection.innerHTML = '';
+    Object.keys(tableInfo.fields).forEach(fieldName => {
+        const fieldInfo = tableInfo.fields[fieldName];
+        const fieldDiv = document.createElement('div');
+        fieldDiv.className = 'field-item';
+        fieldDiv.innerHTML = `
+            <input type="checkbox" id="field_${fieldName}" value="${fieldName}" checked>
+            <label for="field_${fieldName}">${fieldInfo.name} (${fieldName})</label>
+        `;
+        fieldSelection.appendChild(fieldDiv);
+    });
+    
+    // 更新筛选和分组字段选项
+    updateFieldOptions();
+    
+    // 显示表信息提示
+    showTableInfo(tableInfo);
+}
+
+// 显示表信息
+function showTableInfo(tableInfo) {
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'table-info';
+    infoDiv.innerHTML = `
+        <div class="info-item">
+            <i class="fas fa-info-circle"></i>
+            <span>表名：${tableInfo.name}</span>
+        </div>
+        <div class="info-item">
+            <i class="fas fa-columns"></i>
+            <span>字段数：${Object.keys(tableInfo.fields).length}</span>
+        </div>
+    `;
+    
+    const existingInfo = document.querySelector('.table-info');
+    if (existingInfo) {
+        existingInfo.remove();
+    }
+    
+    const configPanel = document.querySelector('.config-panel .panel-content');
+    configPanel.insertBefore(infoDiv, configPanel.firstChild);
+}
+
+// 字段全选/全不选
+function selectAllFields() {
+    document.querySelectorAll('#fieldSelection input[type="checkbox"]').forEach(checkbox => {
+        checkbox.checked = true;
+    });
+}
+
+function deselectAllFields() {
+    document.querySelectorAll('#fieldSelection input[type="checkbox"]').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+}
+
+// 更新字段选项
+function updateFieldOptions() {
+    const fieldSelects = document.querySelectorAll('.filter-field, .group-field, .order-field, .aggregate-field, .time-field');
+    fieldSelects.forEach(select => {
+        const currentValue = select.value;
+        select.innerHTML = '<option value="">选择字段</option>';
+        
+        Object.keys(currentFields).forEach(fieldName => {
+            const fieldInfo = currentFields[fieldName];
+            const option = document.createElement('option');
+            option.value = fieldName;
+            option.textContent = `${fieldInfo.name} (${fieldName})`;
+            select.appendChild(option);
+        });
+        
+        select.value = currentValue;
+    });
+}
+
+// 添加筛选条件
+function addFilter() {
+    const container = document.getElementById('filterContainer');
+    const filterRow = document.createElement('div');
+    filterRow.className = 'filter-row';
+    filterRow.innerHTML = `
+        <select class="filter-field form-select">
+            <option value="">选择字段</option>
+        </select>
+        <select class="filter-operator form-select">
+            <option value="=">=</option>
+            <option value="!=">!=</option>
+            <option value=">">></option>
+            <option value="<"><</option>
+            <option value=">=">>=</option>
+            <option value="<="><=</option>
+            <option value="LIKE">包含</option>
+            <option value="IN">在列表中</option>
+            <option value="IS NULL">为空</option>
+            <option value="IS NOT NULL">不为空</option>
+        </select>
+        <input type="text" class="filter-value form-input" placeholder="值">
+        <button type="button" onclick="removeFilter(this)" class="btn-remove">
+            <i class="fas fa-trash"></i>
+        </button>
+    `;
+    container.appendChild(filterRow);
+    updateFieldOptions();
+    
+    // 添加动画效果
+    filterRow.style.opacity = '0';
+    filterRow.style.transform = 'translateY(-10px)';
+    setTimeout(() => {
+        filterRow.style.transition = 'all 0.3s ease';
+        filterRow.style.opacity = '1';
+        filterRow.style.transform = 'translateY(0)';
+    }, 10);
+}
+
+// 删除筛选条件
+function removeFilter(button) {
+    const row = button.parentElement;
+    row.style.transition = 'all 0.3s ease';
+    row.style.opacity = '0';
+    row.style.transform = 'translateY(-10px)';
+    setTimeout(() => {
+        row.remove();
+    }, 300);
+}
+
+// 添加聚合字段
+function addAggregateField() {
+    const container = document.getElementById('aggregateFieldsList');
+    const aggregateRow = document.createElement('div');
+    aggregateRow.className = 'aggregate-field-row';
+    aggregateRow.innerHTML = `
+        <select class="aggregate-function form-select">
+            <option value="SUM">SUM</option>
+            <option value="AVG">AVG</option>
+            <option value="MAX">MAX</option>
+            <option value="MIN">MIN</option>
+            <option value="COUNT">COUNT</option>
+        </select>
+        <select class="aggregate-field form-select">
+            <option value="">选择字段</option>
+        </select>
+        <input type="text" class="aggregate-alias form-input" placeholder="别名（可选）">
+        <button type="button" onclick="removeAggregateField(this)" class="btn-remove">
+            <i class="fas fa-trash"></i>
+        </button>
+    `;
+    container.appendChild(aggregateRow);
+    updateFieldOptions();
+    
+    // 显示聚合字段区域
+    document.getElementById('aggregateFields').style.display = 'block';
+    
+    // 添加动画效果
+    aggregateRow.style.opacity = '0';
+    aggregateRow.style.transform = 'translateY(-10px)';
+    setTimeout(() => {
+        aggregateRow.style.transition = 'all 0.3s ease';
+        aggregateRow.style.opacity = '1';
+        aggregateRow.style.transform = 'translateY(0)';
+    }, 10);
+}
+
+// 删除聚合字段
+function removeAggregateField(button) {
+    const row = button.parentElement;
+    row.style.transition = 'all 0.3s ease';
+    row.style.opacity = '0';
+    row.style.transform = 'translateY(-10px)';
+    setTimeout(() => {
+        row.remove();
+        
+        // 如果没有聚合字段了，隐藏区域
+        const container = document.getElementById('aggregateFieldsList');
+        if (container.children.length === 0) {
+            document.getElementById('aggregateFields').style.display = 'none';
+        }
+    }, 300);
+}
+
+// 执行查询
+function executeQuery() {
+    if (!currentTable) {
+        showNotification('请先选择数据表', 'warning');
+        return;
+    }
+    
+    const startTime = Date.now();
+    
+    // 显示加载状态
+    const executeBtn = document.querySelector('.btn-execute');
+    const originalText = executeBtn.innerHTML;
+    executeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 查询中...';
+    executeBtn.disabled = true;
+    
+    // 收集选中的字段
+    const selectedFields = [];
+    document.querySelectorAll('#fieldSelection input[type="checkbox"]:checked').forEach(checkbox => {
+        selectedFields.push(checkbox.value);
+    });
+    
+    // 收集聚合字段
+    document.querySelectorAll('.aggregate-field-row').forEach(row => {
+        const func = row.querySelector('.aggregate-function').value;
+        const field = row.querySelector('.aggregate-field').value;
+        const alias = row.querySelector('.aggregate-alias').value.trim();
+        
+        if (func && field) {
+            const aggregateField = {
+                function: func,
+                field: field
+            };
+            if (alias) {
+                aggregateField.alias = alias;
+            }
+            selectedFields.push(aggregateField);
+        }
+    });
+    
+    if (selectedFields.length === 0) {
+        selectedFields.push('*');
+    }
+    
+    // 收集筛选条件
+    const filters = [];
+    document.querySelectorAll('.filter-row').forEach(row => {
+        const field = row.querySelector('.filter-field').value;
+        const operator = row.querySelector('.filter-operator').value;
+        const value = row.querySelector('.filter-value').value;
+        
+        if (field && (value || operator === 'IS NULL' || operator === 'IS NOT NULL')) {
+            filters.push({
+                field: field,
+                operator: operator,
+                value: operator === 'IN' ? value.split(',').map(v => v.trim()) : value
+            });
+        }
+    });
+    
+    // 收集排序字段
+    const orderBy = [];
+    document.querySelectorAll('.order-row').forEach(row => {
+        const field = row.querySelector('.order-field').value;
+        const direction = row.querySelector('.order-direction').value;
+        
+        if (field) {
+            orderBy.push({
+                field: field,
+                direction: direction
+            });
+        }
+    });
+    
+    // 获取分页设置
+    const limit = parseInt(document.getElementById('limitInput').value) || 100;
+    const offset = (currentPage - 1) * limit;
+    
+    // 构建查询参数
+    const queryData = {
+        table: currentTable,
+        fields: selectedFields,
+        filters: filters,
+        order_by: orderBy,
+        limit: limit,
+        offset: offset
+    };
+    
+    // 发送查询请求
+    fetch('/analytics/query', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(queryData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        const endTime = Date.now();
+        
+        if (data.success) {
+            currentResults = data.data;
+            displayResults(data.data, data.total, data.sql, endTime - startTime);
+            showNotification('查询执行成功', 'success');
+        } else {
+            showNotification('查询失败：' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('查询失败：' + error.message, 'error');
+    })
+    .finally(() => {
+        // 恢复按钮状态
+        executeBtn.innerHTML = originalText;
+        executeBtn.disabled = false;
+    });
+}
+
+// 显示查询结果
+function displayResults(data, total, sql, queryTime) {
+    // 显示 SQL
+    document.getElementById('sqlDisplay').textContent = sql;
+    
+    // 显示统计信息
+    document.getElementById('resultCount').textContent = `总记录数：${total.toLocaleString()}`;
+    document.getElementById('resultTime').textContent = `查询时间：${queryTime}ms`;
+    document.getElementById('resultDate').textContent = `查询时间：${new Date().toLocaleString()}`;
+    
+    // 计算分页
+    const limit = parseInt(document.getElementById('limitInput').value) || 100;
+    totalPages = Math.ceil(total / limit);
+    
+    // 显示数据表格
+    const table = document.getElementById('resultTable');
+    const thead = table.querySelector('thead tr');
+    const tbody = table.querySelector('tbody');
+    
+    // 清空表格
+    thead.innerHTML = '';
+    tbody.innerHTML = '';
+    
+    if (data.length > 0) {
+        // 生成表头
+        Object.keys(data[0]).forEach(key => {
+            const th = document.createElement('th');
+            th.textContent = key;
+            th.style.cursor = 'pointer';
+            th.onclick = () => sortTable(key);
+            th.innerHTML += ' <i class="fas fa-sort"></i>';
+            thead.appendChild(th);
+        });
+        
+        // 生成数据行
+        data.forEach((row, index) => {
+            const tr = document.createElement('tr');
+            Object.values(row).forEach(value => {
+                const td = document.createElement('td');
+                if (value === null || value === undefined) {
+                    td.textContent = 'NULL';
+                    td.style.color = '#6c757d';
+                    td.style.fontStyle = 'italic';
+                } else if (typeof value === 'number') {
+                    td.textContent = value.toLocaleString();
+                    td.style.textAlign = 'right';
+                } else {
+                    td.textContent = value;
+                }
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        });
+        
+        // 启用导出按钮
+        document.getElementById('exportBtn').disabled = false;
+    } else {
+        // 显示无数据提示
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 1;
+        td.textContent = '暂无数据';
+        td.style.textAlign = 'center';
+        td.style.padding = '40px';
+        td.style.color = '#6c757d';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+        
+        // 禁用导出按钮
+        document.getElementById('exportBtn').disabled = true;
+    }
+    
+    // 更新分页信息
+    updatePagination();
+    
+    // 自动显示SQL面板
+    document.getElementById('sqlPanel').style.display = 'block';
+}
+
+// 表格排序
+function sortTable(column) {
+    if (!currentResults || currentResults.length === 0) return;
+    
+    const isNumeric = typeof currentResults[0][column] === 'number';
+    
+    currentResults.sort((a, b) => {
+        let aVal = a[column];
+        let bVal = b[column];
+        
+        if (aVal === null || aVal === undefined) aVal = isNumeric ? -Infinity : '';
+        if (bVal === null || bVal === undefined) bVal = isNumeric ? -Infinity : '';
+        
+        if (isNumeric) {
+            return aVal - bVal;
+        } else {
+            return String(aVal).localeCompare(String(bVal));
+        }
+    });
+    
+    // 重新显示表格
+    const table = document.getElementById('resultTable');
+    const tbody = table.querySelector('tbody');
+    tbody.innerHTML = '';
+    
+    currentResults.forEach(row => {
+        const tr = document.createElement('tr');
+        Object.values(row).forEach(value => {
+            const td = document.createElement('td');
+            if (value === null || value === undefined) {
+                td.textContent = 'NULL';
+                td.style.color = '#6c757d';
+                td.style.fontStyle = 'italic';
+            } else if (typeof value === 'number') {
+                td.textContent = value.toLocaleString();
+                td.style.textAlign = 'right';
+            } else {
+                td.textContent = value;
+            }
+            tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+    });
+    
+    showNotification(`已按 ${column} 排序`, 'info');
+}
+
+// 更新分页信息
+function updatePagination() {
+    document.getElementById('pageInfo').textContent = `第 ${currentPage} 页，共 ${totalPages} 页`;
+    document.getElementById('prevBtn').disabled = currentPage <= 1;
+    document.getElementById('nextBtn').disabled = currentPage >= totalPages;
+}
+
+// 切换页面
+function changePage(delta) {
+    const newPage = currentPage + delta;
+    if (newPage >= 1 && newPage <= totalPages) {
+        currentPage = newPage;
+        executeQuery();
+    }
+}
+
+// 重置查询
+function resetQuery() {
+    if (!confirm('确定要重置所有查询条件吗？')) {
+        return;
+    }
+    
+    document.getElementById('tableSelect').value = '';
+    document.getElementById('fieldSelection').innerHTML = '';
+    document.getElementById('aggregateFieldsList').innerHTML = '';
+    document.getElementById('aggregateFields').style.display = 'none';
+    
+    document.getElementById('filterContainer').innerHTML = `
+        <div class="filter-row">
+            <select class="filter-field form-select">
+                <option value="">选择字段</option>
+            </select>
+            <select class="filter-operator form-select">
+                <option value="=">=</option>
+                <option value="!=">!=</option>
+                <option value=">">></option>
+                <option value="<"><</option>
+                <option value=">=">>=</option>
+                <option value="<="><=</option>
+                <option value="LIKE">包含</option>
+                <option value="IN">在列表中</option>
+                <option value="IS NULL">为空</option>
+                <option value="IS NOT NULL">不为空</option>
+            </select>
+            <input type="text" class="filter-value form-input" placeholder="值">
+            <button type="button" onclick="removeFilter(this)" class="btn-remove">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `;
+    document.getElementById('orderContainer').innerHTML = `
+        <div class="order-row">
+            <select class="order-field form-select">
+                <option value="">选择排序字段</option>
+            </select>
+            <select class="order-direction form-select">
+                <option value="ASC">升序</option>
+                <option value="DESC">降序</option>
+            </select>
+            <button type="button" onclick="removeOrder(this)" class="btn-remove">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+    `;
+    document.getElementById('limitInput').value = '100';
+    currentPage = 1;
+    
+    // 清空结果
+    document.getElementById('resultTable').innerHTML = '<thead><tr></tr></thead><tbody></tbody>';
+    document.getElementById('sqlDisplay').textContent = 'SELECT * FROM 表名 LIMIT 100';
+    document.getElementById('resultCount').textContent = '总记录数：0';
+    document.getElementById('resultTime').textContent = '查询时间：0ms';
+    document.getElementById('exportBtn').disabled = true;
+    
+    // 移除表信息
+    const tableInfo = document.querySelector('.table-info');
+    if (tableInfo) {
+        tableInfo.remove();
+    }
+    
+    showNotification('查询条件已重置', 'info');
+}
+
+// 复制SQL
+function copySQL() {
+    const sqlText = document.getElementById('sqlDisplay').textContent;
+    navigator.clipboard.writeText(sqlText).then(() => {
+        showNotification('SQL已复制到剪贴板', 'success');
+    }).catch(() => {
+        showNotification('复制失败，请手动复制', 'warning');
+    });
+}
+
+// 生成图表
+function generateChart() {
+    if (!currentResults || currentResults.length === 0) {
+        showNotification('请先执行查询获取数据', 'warning');
+        return;
+    }
+    
+    const chartType = document.getElementById('chartType').value;
+    const chartContainer = document.getElementById('chartContainer');
+    
+    // 这里可以集成Chart.js或其他图表库
+    // 简化实现：显示图表类型信息
+    chartContainer.innerHTML = `
+        <div class="chart-placeholder">
+            <i class="fas fa-chart-${chartType === 'table' ? 'bar' : chartType}"></i>
+            <h4>${chartType.toUpperCase()} 图表</h4>
+            <p>数据点：${currentResults.length}</p>
+            <p>字段数：${Object.keys(currentResults[0] || {}).length}</p>
+        </div>
+    `;
+    
+    showNotification(`${chartType} 图表已生成`, 'success');
+}
+
+// 导出结果
+function exportResults() {
+    if (!currentResults || currentResults.length === 0) {
+        showNotification('没有数据可导出', 'warning');
+        return;
+    }
+    
+    // 创建CSV内容
+    const headers = Object.keys(currentResults[0]);
+    const csvContent = [
+        headers.join(','),
+        ...currentResults.map(row => 
+            headers.map(header => {
+                const value = row[header];
+                return value === null || value === undefined ? '' : `"${value}"`;
+            }).join(',')
+        )
+    ].join('\n');
+    
+    // 创建下载链接
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `analytics_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showNotification('数据已导出为CSV文件', 'success');
+}
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化分页
+    updatePagination();
+    
+    // 添加键盘快捷键
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey || e.metaKey) {
+            switch(e.key) {
+                case 'Enter':
+                    e.preventDefault();
+                    executeQuery();
+                    break;
+                case 'r':
+                    e.preventDefault();
+                    resetQuery();
+                    break;
+                case 's':
+                    e.preventDefault();
+                    togglePanel('sql');
+                    break;
+            }
+        }
+    });
+    
+    // 显示欢迎信息
+    setTimeout(() => {
+        showNotification('欢迎使用灵活数据分析！使用 Ctrl+Enter 快速执行查询', 'info');
+    }, 1000);
+});
+</script>
+
+<style>
+/* 通知样式 */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 400px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: slideIn 0.3s ease-out;
+}
+
+.notification-success {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+}
+
+.notification-error {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+}
+
+.notification-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+    color: #212529;
+}
+
+.notification-info {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    margin-left: auto;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.notification-close:hover {
+    opacity: 1;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* 表信息样式 */
+.table-info {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 20px;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #1976d2;
+    font-weight: 500;
+}
+
+/* 图表占位符样式 */
+.chart-placeholder {
+    text-align: center;
+    padding: 40px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 2px dashed #dee2e6;
+}
+
+.chart-placeholder i {
+    font-size: 3em;
+    color: #6c757d;
+    margin-bottom: 15px;
+}
+
+.chart-placeholder h4 {
+    color: #495057;
+    margin-bottom: 10px;
+}
+
+.chart-placeholder p {
+    color: #6c757d;
+    margin: 5px 0;
+}
+
+/* 无数据样式 */
+.no-data {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* 表格搜索样式 */
+.table-controls {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.table-controls .form-input {
+    min-width: 200px;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .notification {
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+    
+    .table-info {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .table-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+</style>
+
+{% endblock %} 

@@ -1,0 +1,540 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="cart-page">
+    <!-- 页面头部 -->
+    <div class="page-header">
+        <h1 class="page-title">🛒 我的购物车</h1>
+        <p class="page-subtitle">查看您选择的商品，准备结算</p>
+    </div>
+
+    {% if items %}
+        <!-- 购物车商品列表 -->
+        <div class="cart-items">
+            {% for item in items %}
+            <div class="cart-item-card">
+                <div class="item-info">
+                    <div class="item-details">
+                        <h3 class="item-name">{{ item.name }}</h3>
+                        <p class="item-description">{{ item.description }}</p>
+                        <span class="item-category">{{ item.category_name }}</span>
+                    </div>
+                    
+                    <div class="item-price-info">
+                        <div class="item-price">¥{{ "%.2f"|format(item.price) }}</div>
+                        <div class="quantity-controls">
+                            <label class="quantity-label">数量:</label>
+                            <div class="quantity-input-group">
+                                <button type="button" class="quantity-btn minus" onclick="changeCartQuantity({{ item.id }}, -1)">-</button>
+                                <span class="quantity-display">{{ item.quantity }}</span>
+                                <button type="button" class="quantity-btn plus" onclick="changeCartQuantity({{ item.id }}, 1)">+</button>
+                            </div>
+                        </div>
+                        <div class="item-subtotal">小计: ¥{{ "%.2f"|format(item.price * item.quantity) }}</div>
+                    </div>
+                </div>
+                
+                <div class="item-actions">
+                    <form action="{{ url_for('order.remove_from_cart', item_id=item.id) }}" method="post" class="remove-form">
+                        <button type="submit" class="remove-btn">
+                            🗑️ 移除
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- 购物车总结 -->
+        <div class="cart-summary">
+            <div class="summary-card">
+                <div class="summary-header">
+                    <h3>📊 购物车总结</h3>
+                </div>
+                
+                <div class="summary-content">
+                    <div class="summary-row">
+                        <span class="summary-label">商品种类:</span>
+                        <span class="summary-value">{{ items|length }} 种</span>
+                    </div>
+                    <div class="summary-row">
+                        <span class="summary-label">商品总数:</span>
+                        <span class="summary-value">{{ items|sum(attribute='quantity') }} 件</span>
+                    </div>
+                    <div class="summary-row total-row">
+                        <span class="summary-label">总价:</span>
+                        <span class="summary-value total-price">¥{{ "%.2f"|format(items|sum(attribute='price') * items|sum(attribute='quantity')) }}</span>
+                    </div>
+                </div>
+                
+                <div class="summary-actions">
+                    <a href="{{ url_for('order.checkout') }}" class="checkout-btn">
+                        💳 去结算
+                    </a>
+                    <form action="{{ url_for('order.clear_cart') }}" method="post" style="display:inline;">
+                        <button type="submit" onclick="return confirm('确定要清空购物车吗？')" class="clear-btn">
+                            🗑️ 清空购物车
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <!-- 空购物车状态 -->
+        <div class="empty-cart">
+            <div class="empty-icon">🛒</div>
+            <h3>购物车为空</h3>
+            <p>您还没有添加任何商品到购物车</p>
+            <a href="{{ url_for('menu.list_menu') }}" class="continue-shopping-btn">
+                🍔 去点餐
+            </a>
+        </div>
+    {% endif %}
+
+    <!-- 底部操作 -->
+    <div class="bottom-actions">
+        <a href="{{ url_for('menu.list_menu') }}" class="back-btn">
+            ← 继续购物
+        </a>
+    </div>
+</div>
+
+<style>
+/* 页面整体样式 */
+.cart-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+    padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* 页面头部 */
+.page-header {
+    text-align: center;
+    margin-bottom: 30px;
+    color: white;
+}
+
+.page-title {
+    font-size: 2.5em;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.page-subtitle {
+    font-size: 1.1em;
+    opacity: 0.9;
+    font-weight: 300;
+}
+
+/* 购物车商品列表 */
+.cart-items {
+    margin-bottom: 30px;
+}
+
+.cart-item-card {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.cart-item-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #74b9ff, #0984e3);
+}
+
+.cart-item-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+
+.item-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    gap: 20px;
+}
+
+.item-details {
+    flex: 1;
+}
+
+.item-name {
+    font-size: 1.4em;
+    font-weight: 700;
+    color: #2d3436;
+    margin: 0 0 10px 0;
+}
+
+.item-description {
+    color: #636e72;
+    line-height: 1.5;
+    margin: 0 0 10px 0;
+    font-size: 0.95em;
+}
+
+.item-category {
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 0.8em;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.item-price-info {
+    text-align: right;
+    min-width: 150px;
+}
+
+.item-price {
+    font-size: 1.3em;
+    font-weight: 700;
+    color: #e17055;
+    margin-bottom: 10px;
+}
+
+.quantity-controls {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.quantity-label {
+    font-size: 0.9em;
+    color: #636e72;
+    font-weight: 500;
+}
+
+.quantity-input-group {
+    display: flex;
+    align-items: center;
+    border: 2px solid #e1e8ed;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.quantity-btn {
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: #f8f9fa;
+    color: #495057;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.quantity-btn:hover {
+    background: #74b9ff;
+    color: white;
+}
+
+.quantity-display {
+    width: 40px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    font-weight: 600;
+    color: #2d3436;
+    font-size: 0.9em;
+}
+
+.item-subtotal {
+    font-weight: 700;
+    color: #2d3436;
+    font-size: 1.1em;
+}
+
+.item-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.remove-form {
+    margin: 0;
+}
+
+.remove-btn {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #e17055 0%, #d63031 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.remove-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(225, 112, 85, 0.3);
+}
+
+/* 购物车总结 */
+.cart-summary {
+    margin-bottom: 30px;
+}
+
+.summary-card {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.summary-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #00b894, #00a085);
+}
+
+.summary-header {
+    margin-bottom: 25px;
+}
+
+.summary-header h3 {
+    color: #2d3436;
+    font-size: 1.5em;
+    font-weight: 700;
+    margin: 0;
+}
+
+.summary-content {
+    margin-bottom: 25px;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f1f3f4;
+}
+
+.summary-row:last-child {
+    border-bottom: none;
+}
+
+.summary-label {
+    color: #636e72;
+    font-weight: 500;
+}
+
+.summary-value {
+    color: #2d3436;
+    font-weight: 600;
+}
+
+.total-row {
+    border-top: 2px solid #e1e8ed;
+    border-bottom: none;
+    padding-top: 15px;
+    margin-top: 10px;
+}
+
+.total-price {
+    font-size: 1.3em;
+    color: #e17055;
+    font-weight: 700;
+}
+
+.summary-actions {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.checkout-btn, .clear-btn {
+    flex: 1;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    text-align: center;
+    min-width: 120px;
+}
+
+.checkout-btn {
+    background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+}
+
+.checkout-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 184, 148, 0.4);
+}
+
+.clear-btn {
+    background: linear-gradient(135deg, #e17055 0%, #d63031 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(225, 112, 85, 0.3);
+}
+
+.clear-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(225, 112, 85, 0.4);
+}
+
+/* 空购物车状态 */
+.empty-cart {
+    text-align: center;
+    padding: 80px 20px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
+}
+
+.empty-icon {
+    font-size: 4em;
+    margin-bottom: 20px;
+    opacity: 0.7;
+}
+
+.empty-cart h3 {
+    color: #2d3436;
+    margin-bottom: 10px;
+    font-size: 1.5em;
+}
+
+.empty-cart p {
+    color: #636e72;
+    margin-bottom: 30px;
+    font-size: 1em;
+}
+
+.continue-shopping-btn {
+    display: inline-block;
+    padding: 12px 30px;
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+    color: white;
+    text-decoration: none;
+    border-radius: 25px;
+    font-weight: 600;
+    font-size: 1em;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(116, 185, 255, 0.3);
+}
+
+.continue-shopping-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(116, 185, 255, 0.4);
+}
+
+/* 底部操作 */
+.bottom-actions {
+    text-align: center;
+}
+
+.back-btn {
+    display: inline-block;
+    padding: 10px 25px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    text-decoration: none;
+    border-radius: 25px;
+    font-weight: 600;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.back-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .cart-page {
+        padding: 15px;
+    }
+    
+    .page-title {
+        font-size: 2em;
+    }
+    
+    .cart-item-card {
+        padding: 20px;
+    }
+    
+    .item-info {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 15px;
+    }
+    
+    .item-price-info {
+        text-align: left;
+    }
+    
+    .quantity-controls {
+        justify-content: flex-start;
+    }
+    
+    .summary-actions {
+        flex-direction: column;
+    }
+    
+    .checkout-btn, .clear-btn {
+        flex: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .cart-page {
+        padding: 10px;
+    }
+    
+    .page-title {
+        font-size: 1.8em;
+    }
+    
+    .cart-item-card {
+        padding: 15px;
+    }
+    
+    .summary-card {
+        padding: 20px;
+    }
+}
+</style>
+
+<script>
+function changeCartQuantity(itemId, change) {
+    // 这里可以添加AJAX请求来更新购物车数量
+    // 目前只是显示提示，实际功能需要后端支持
+    alert('数量修改功能需要后端支持，请刷新页面查看最新状态');
+}
+</script>
+{% endblock %} 

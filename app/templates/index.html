@@ -1,0 +1,371 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="homepage">
+    <!-- Logo 展示区域 -->
+    <div class="logo-section">
+        <div class="logo-container">
+            <img src="{{ url_for('static', filename='images/logo1.png') }}" alt="Logo 1">
+            <img src="{{ url_for('static', filename='images/logo2.png') }}" alt="Logo 2">
+            <img src="{{ url_for('static', filename='images/logo3.png') }}" alt="Logo 3">
+        </div>
+    </div>
+
+    <!-- 主要内容区域 -->
+    <div class="main-content">
+        <!-- 标题区域 -->
+        <div class="title-section">
+            <h1 class="main-title">🍔 欢迎来到麦堡王点单系统</h1>
+            <p class="subtitle">
+                {% if not current_user.is_authenticated or current_user.role == 'customer' %}
+                    本系统支持在线点餐、订单管理，为您提供便捷的餐饮服务体验。
+                {% elif current_user.role == 'admin' %}
+                    您可以管理菜单、订单、分类等后台内容。
+                {% elif current_user.role == 'analyst' %}
+                    您可以进行数据分析、变量管理等高级分析操作。
+                {% endif %}
+            </p>
+        </div>
+
+        <!-- 功能特性区域 居中显示 -->
+        <div class="features-section-centered">
+            {% if not current_user.is_authenticated or current_user.role == 'customer' %}
+                <div class="feature-card">
+                    <div class="feature-icon">🛒</div>
+                    <h3>在线点餐</h3>
+                    <p>便捷的菜单浏览和购物车功能</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📦</div>
+                    <h3>我的订单</h3>
+                    <p>查看您的订单历史和状态</p>
+                </div>
+            {% elif current_user.role == 'admin' %}
+                <div class="feature-card">
+                    <div class="feature-icon">🛒</div>
+                    <h3>在线点餐</h3>
+                    <p>便捷的菜单浏览和购物车功能</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔧</div>
+                    <h3>订单管理</h3>
+                    <p>后台订单管理与处理</p>
+                </div>
+            {% elif current_user.role == 'analyst' %}
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>数据分析</h3>
+                    <p>销售统计、用户画像、灵活分析等</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- 团队信息 -->
+        <div class="team-section">
+            <p>2025 西南大数学与统计学院 × 狗熊会 实习项目展示</p>
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="action-section">
+            <p class="action-text">请使用导航栏开始探索！</p>
+            <div class="action-buttons">
+                <a href="{{ url_for('menu.list_menu') }}" class="action-btn primary">
+                    🍟 浏览菜单
+                </a>
+                {% if current_user.is_authenticated %}
+                    <a href="{{ url_for('order.cart') }}" class="action-btn secondary">
+                        🛒 我的购物车
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('auth.login') }}" class="action-btn secondary">
+                        🔐 立即登录
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* 重置和基础样式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* 主容器 */
+.homepage {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Logo 区域 */
+.logo-section {
+    margin-bottom: 40px;
+}
+
+.logo-container {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 15px 25px;
+    border-radius: 50px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.logo-container img {
+    height: 40px;
+    width: auto;
+    border-radius: 8px;
+    transition: transform 0.3s ease;
+}
+
+.logo-container img:hover {
+    transform: scale(1.1);
+}
+
+/* 主要内容区域 */
+.main-content {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 40px;
+    max-width: 600px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+/* 标题区域 */
+.title-section {
+    margin-bottom: 30px;
+}
+
+.main-title {
+    font-size: 2.5em;
+    font-weight: 700;
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 15px;
+}
+
+.subtitle {
+    font-size: 1.1em;
+    color: #666;
+    line-height: 1.6;
+}
+
+/* 功能特性区域 */
+.features-section-centered {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 32px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
+
+.features-section-centered .feature-card {
+    min-width: 180px;
+    max-width: 220px;
+    flex: 1 1 180px;
+}
+
+.feature-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 20px 15px;
+    border-radius: 15px;
+    transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.feature-icon {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+}
+
+.feature-card h3 {
+    font-size: 1.1em;
+    color: #333;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.feature-card p {
+    font-size: 0.9em;
+    color: #666;
+    line-height: 1.4;
+}
+
+/* 团队信息 */
+.team-section {
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+}
+
+.team-section p {
+    font-size: 1em;
+    font-weight: 500;
+}
+
+/* 操作区域 */
+.action-section {
+    text-align: center;
+}
+
+.action-text {
+    font-size: 1em;
+    color: #555;
+    margin-bottom: 20px;
+    font-weight: 500;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    display: inline-block;
+    padding: 12px 24px;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1em;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.action-btn.primary {
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+    color: white;
+    box-shadow: 0 5px 15px rgba(116, 185, 255, 0.3);
+}
+
+.action-btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(116, 185, 255, 0.4);
+}
+
+.action-btn.secondary {
+    background: transparent;
+    color: #0984e3;
+    border-color: #0984e3;
+}
+
+.action-btn.secondary:hover {
+    background: #0984e3;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(116, 185, 255, 0.3);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .homepage {
+        padding: 15px;
+    }
+    
+    .logo-container {
+        padding: 12px 20px;
+        gap: 15px;
+    }
+    
+    .logo-container img {
+        height: 35px;
+    }
+    
+    .main-content {
+        padding: 30px 25px;
+    }
+    
+    .main-title {
+        font-size: 2em;
+    }
+    
+    .subtitle {
+        font-size: 1em;
+    }
+    
+    .features-section-centered {
+        flex-direction: column;
+        gap: 18px;
+    }
+    
+    .features-section-centered .feature-card {
+        max-width: 100%;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .action-btn {
+        width: 100%;
+        max-width: 250px;
+    }
+}
+
+@media (max-width: 480px) {
+    .homepage {
+        padding: 10px;
+    }
+    
+    .logo-container {
+        padding: 10px 15px;
+        gap: 10px;
+    }
+    
+    .logo-container img {
+        height: 30px;
+    }
+    
+    .main-content {
+        padding: 25px 20px;
+    }
+    
+    .main-title {
+        font-size: 1.8em;
+    }
+    
+    .subtitle {
+        font-size: 0.9em;
+    }
+    
+    .feature-card {
+        padding: 12px;
+    }
+    
+    .feature-icon {
+        font-size: 2em;
+    }
+    
+    .action-btn {
+        padding: 10px 20px;
+        font-size: 0.9em;
+    }
+}
+</style>
+
+{% endblock %} 

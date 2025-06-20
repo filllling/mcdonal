@@ -1,0 +1,729 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="variables-header">
+    <h2><i class="fas fa-tools"></i> 变量管理</h2>
+    <p class="subtitle">创建和管理自定义分析变量，提高查询效率</p>
+</div>
+
+<div class="variables-container">
+    <!-- 创建新变量区域 -->
+    <div class="create-variable-panel">
+        <div class="panel-header">
+            <h3><i class="fas fa-plus-circle"></i> 创建新变量</h3>
+            <button type="button" onclick="toggleCreateForm()" class="panel-toggle">
+                <i class="fas fa-chevron-up"></i>
+            </button>
+        </div>
+        
+        <div class="panel-content" id="createFormContent">
+            <form id="createVariableForm" class="variable-form">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label><i class="fas fa-tag"></i> 变量名：</label>
+                        <input type="text" id="varName" name="name" placeholder="如：user_order_count" class="form-input" required>
+                        <small class="form-hint">只能包含字母、数字和下划线，以字母或下划线开头</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-code"></i> 表达式：</label>
+                        <input type="text" id="varExpression" name="expression" placeholder="如：COUNT(*)" class="form-input" required>
+                        <small class="form-hint">支持SQL聚合函数：SUM、AVG、MAX、MIN、COUNT等</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-table"></i> 适用表：</label>
+                        <select id="varTable" name="table_name" class="form-select" required>
+                            <option value="">选择表</option>
+                            <option value="order">订单表 (order)</option>
+                            <option value="order_item">订单详情表 (order_item)</option>
+                            <option value="menu_item">菜单项表 (menu_item)</option>
+                            <option value="user">用户表 (user)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label><i class="fas fa-info-circle"></i> 描述：</label>
+                        <input type="text" id="varDescription" name="description" placeholder="变量用途描述" class="form-input">
+                        <small class="form-hint">可选，用于说明变量的用途</small>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn-create">
+                        <i class="fas fa-save"></i> 创建变量
+                    </button>
+                    <button type="button" onclick="resetForm()" class="btn-reset">
+                        <i class="fas fa-redo"></i> 重置
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 变量列表区域 -->
+    <div class="variables-list-panel">
+        <div class="panel-header">
+            <h3><i class="fas fa-list"></i> 已保存的变量</h3>
+            <div class="list-controls">
+                <input type="text" id="searchVariables" placeholder="搜索变量..." class="form-input">
+                <select id="filterTable" class="form-select">
+                    <option value="">所有表</option>
+                    <option value="order">订单表</option>
+                    <option value="order_item">订单详情表</option>
+                    <option value="menu_item">菜单项表</option>
+                    <option value="user">用户表</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="panel-content">
+            {% if variables %}
+            <div class="variables-grid" id="variablesGrid">
+                {% for variable in variables %}
+                <div class="variable-card" data-table="{{ variable.table_name }}" data-name="{{ variable.name.lower() }}">
+                    <div class="variable-header">
+                        <div class="variable-name">{{ variable.name }}</div>
+                        <div class="variable-actions">
+                            <button onclick="editVariable({{ variable.id }})" class="btn-edit" title="编辑">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="deleteVariable({{ variable.id }})" class="btn-delete" title="删除">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="variable-content">
+                        <div class="variable-expression">
+                            <i class="fas fa-code"></i>
+                            <code>{{ variable.expression }}</code>
+                        </div>
+                        
+                        <div class="variable-meta">
+                            <div class="meta-item">
+                                <i class="fas fa-table"></i>
+                                <span>{{ variable.table_name }}</span>
+                            </div>
+                            <div class="meta-item">
+                                <i class="fas fa-user"></i>
+                                <span>{{ variable.creator_name or '未知' }}</span>
+                            </div>
+                            <div class="meta-item">
+                                <i class="fas fa-calendar"></i>
+                                <span>{{ variable.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+                            </div>
+                        </div>
+                        
+                        {% if variable.description %}
+                        <div class="variable-description">
+                            <i class="fas fa-info-circle"></i>
+                            <span>{{ variable.description }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="no-variables">
+                <div class="empty-state">
+                    <i class="fas fa-tools"></i>
+                    <h4>暂无保存的变量</h4>
+                    <p>创建您的第一个分析变量，提高查询效率</p>
+                    <button onclick="toggleCreateForm()" class="btn-create">
+                        <i class="fas fa-plus"></i> 创建变量
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+/* 页面头部样式 */
+.variables-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 30px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.variables-header h2 {
+    margin: 0 0 10px 0;
+    font-size: 2.5em;
+    font-weight: 300;
+}
+
+.variables-header .subtitle {
+    margin: 0;
+    font-size: 1.1em;
+    opacity: 0.9;
+}
+
+/* 容器样式 */
+.variables-container {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+/* 面板样式 */
+.create-variable-panel, .variables-list-panel {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.panel-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    padding: 20px;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.panel-header h3 {
+    margin: 0;
+    color: #495057;
+    font-size: 1.3em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.panel-toggle {
+    background: none;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.panel-toggle:hover {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.panel-content {
+    padding: 25px;
+}
+
+/* 表单样式 */
+.variable-form {
+    background: #f8f9fa;
+    padding: 25px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 25px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: #495057;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.form-input, .form-select {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.form-input:focus, .form-select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.form-hint {
+    font-size: 12px;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: flex-start;
+}
+
+/* 按钮样式 */
+.btn-create, .btn-reset {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-create:hover {
+    background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.btn-reset {
+    background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+}
+
+.btn-reset:hover {
+    background: linear-gradient(135deg, #5a6268 0%, #495057 100%);
+}
+
+/* 列表控制样式 */
+.list-controls {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.list-controls .form-input {
+    min-width: 200px;
+}
+
+.list-controls .form-select {
+    min-width: 150px;
+}
+
+/* 变量网格样式 */
+.variables-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+}
+
+.variable-card {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 20px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.variable-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.variable-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.variable-name {
+    font-weight: 600;
+    color: #007bff;
+    font-size: 1.1em;
+}
+
+.variable-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-edit, .btn-delete {
+    background: none;
+    border: none;
+    padding: 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+.btn-edit {
+    color: #007bff;
+}
+
+.btn-delete {
+    color: #dc3545;
+}
+
+.btn-edit:hover {
+    background: rgba(0, 123, 255, 0.1);
+}
+
+.btn-delete:hover {
+    background: rgba(220, 53, 69, 0.1);
+}
+
+.variable-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.variable-expression {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 6px;
+    border-left: 4px solid #007bff;
+}
+
+.variable-expression code {
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    color: #495057;
+    background: none;
+    padding: 0;
+}
+
+.variable-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.variable-description {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: #6c757d;
+    font-style: italic;
+    font-size: 14px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 6px;
+}
+
+/* 空状态样式 */
+.no-variables {
+    padding: 40px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 2px dashed #dee2e6;
+}
+
+.empty-state i {
+    font-size: 3em;
+    color: #6c757d;
+    margin-bottom: 15px;
+}
+
+.empty-state h4 {
+    color: #495057;
+    margin-bottom: 10px;
+}
+
+.empty-state p {
+    color: #6c757d;
+    margin-bottom: 20px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .variables-header {
+        padding: 20px;
+    }
+    
+    .variables-header h2 {
+        font-size: 2em;
+    }
+    
+    .panel-content {
+        padding: 15px;
+    }
+    
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .list-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .variables-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .variable-meta {
+        flex-direction: column;
+    }
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.variable-card {
+    animation: fadeIn 0.3s ease-out;
+}
+</style>
+
+<script>
+// 切换创建表单显示/隐藏
+function toggleCreateForm() {
+    const content = document.getElementById('createFormContent');
+    const button = document.querySelector('.panel-toggle i');
+    const isVisible = content.style.display !== 'none';
+    
+    content.style.display = isVisible ? 'none' : 'block';
+    button.className = isVisible ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+}
+
+// 重置表单
+function resetForm() {
+    document.getElementById('createVariableForm').reset();
+}
+
+// 创建变量
+document.getElementById('createVariableForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const variableData = {
+        name: formData.get('name').trim(),
+        expression: formData.get('expression').trim(),
+        table_name: formData.get('table_name'),
+        description: formData.get('description').trim()
+    };
+    
+    if (!variableData.name || !variableData.expression || !variableData.table_name) {
+        showNotification('请填写完整的变量信息', 'warning');
+        return;
+    }
+    
+    // 验证变量名格式
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(variableData.name)) {
+        showNotification('变量名格式无效，只能包含字母、数字和下划线，以字母或下划线开头', 'error');
+        return;
+    }
+    
+    fetch('/analytics/variables/create', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(variableData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('变量创建成功', 'success');
+            resetForm();
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            showNotification('变量创建失败：' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('变量创建失败：' + error.message, 'error');
+    });
+});
+
+// 删除变量
+function deleteVariable(varId) {
+    if (!confirm('确定要删除这个变量吗？')) {
+        return;
+    }
+    
+    fetch(`/analytics/variables/${varId}/delete`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('变量删除成功', 'success');
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            showNotification('变量删除失败：' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('变量删除失败：' + error.message, 'error');
+    });
+}
+
+// 编辑变量（预留功能）
+function editVariable(varId) {
+    showNotification('编辑功能开发中...', 'info');
+}
+
+// 搜索和过滤变量
+document.getElementById('searchVariables').addEventListener('input', function(e) {
+    filterVariables();
+});
+
+document.getElementById('filterTable').addEventListener('change', function(e) {
+    filterVariables();
+});
+
+function filterVariables() {
+    const searchTerm = document.getElementById('searchVariables').value.toLowerCase();
+    const filterTable = document.getElementById('filterTable').value;
+    const cards = document.querySelectorAll('.variable-card');
+    
+    cards.forEach(card => {
+        const name = card.dataset.name;
+        const table = card.dataset.table;
+        const nameMatch = name.includes(searchTerm);
+        const tableMatch = !filterTable || table === filterTable;
+        
+        card.style.display = nameMatch && tableMatch ? 'block' : 'none';
+    });
+}
+
+// 显示通知
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : type === 'warning' ? 'exclamation-triangle' : 'info-circle'}"></i>
+        <span>${message}</span>
+        <button onclick="this.parentElement.remove()" class="notification-close">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 显示欢迎信息
+    setTimeout(() => {
+        showNotification('欢迎使用变量管理！创建自定义变量提高分析效率', 'info');
+    }, 1000);
+});
+</script>
+
+<style>
+/* 通知样式 */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: 400px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    animation: slideIn 0.3s ease-out;
+}
+
+.notification-success {
+    background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+}
+
+.notification-error {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+}
+
+.notification-warning {
+    background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%);
+    color: #212529;
+}
+
+.notification-info {
+    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    margin-left: auto;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.notification-close:hover {
+    opacity: 1;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .notification {
+        right: 10px;
+        left: 10px;
+        max-width: none;
+    }
+}
+</style>
+
+{% endblock %} 

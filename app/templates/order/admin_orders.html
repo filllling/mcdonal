@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>订单管理</h2>
+{% if orders %}
+    <table border="1" cellpadding="6">
+        <tr>
+            <th>订单号</th><th>用户</th><th>下单时间</th><th>总价</th><th>状态</th><th>支付状态</th><th>操作</th>
+        </tr>
+        {% for order in orders %}
+        <tr>
+            <td>{{ order.id }}</td>
+            <td>{{ order.username }}</td>
+            <td>{{ order.order_time }}</td>
+            <td>{{ order.total_price }}</td>
+            <td>{{ order.status }}</td>
+            <td>{{ order.payment_status }}</td>
+            <td>
+                <a href="{{ url_for('order.admin_order_detail', order_id=order.id) }}">查看详情</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+{% else %}
+    <p>暂无订单</p>
+{% endif %}
+{% endblock %} 

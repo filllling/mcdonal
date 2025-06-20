@@ -1,0 +1,391 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="category-page">
+    <!-- 页面头部 -->
+    <div class="page-header">
+        <h1 class="page-title">📂 分类管理</h1>
+        <p class="page-subtitle">管理菜单分类，组织您的菜单结构</p>
+    </div>
+
+    <!-- 操作区域 -->
+    <div class="controls-section">
+        <div class="stats-info">
+            <span class="stats-item">
+                <span class="stats-number">{{ categories|length }}</span>
+                <span class="stats-label">个分类</span>
+            </span>
+        </div>
+        
+        <div class="action-controls">
+            <a href="{{ url_for('menu.category_add') }}" class="action-btn add-btn">
+                ➕ 添加分类
+            </a>
+            <a href="{{ url_for('menu.list_menu') }}" class="action-btn back-btn">
+                ← 返回菜单
+            </a>
+        </div>
+    </div>
+
+    <!-- 分类列表 -->
+    {% if categories %}
+    <div class="categories-grid">
+        {% for cat in categories %}
+        <div class="category-card">
+            <div class="category-header">
+                <h3 class="category-name">{{ cat.name }}</h3>
+                <span class="category-id">#{{ cat.id }}</span>
+            </div>
+            
+            <div class="category-body">
+                <p class="category-description">{{ cat.description or '暂无描述' }}</p>
+            </div>
+            
+            <div class="category-footer">
+                <div class="category-actions">
+                    <a href="{{ url_for('menu.category_edit', cat_id=cat.id) }}" class="edit-btn">
+                        ✏️ 编辑
+                    </a>
+                    <form action="{{ url_for('menu.category_delete', cat_id=cat.id) }}" method="post" style="display:inline;">
+                        <button type="submit" onclick="return confirm('确定删除分类「{{ cat.name }}」吗？\n\n注意：删除分类将同时删除该分类下的所有菜单项！')" class="delete-btn">
+                            🗑️ 删除
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- 空状态 -->
+    <div class="empty-state">
+        <div class="empty-icon">📂</div>
+        <h3>暂无分类</h3>
+        <p>还没有创建任何菜单分类，点击上方按钮添加第一个分类</p>
+        <a href="{{ url_for('menu.category_add') }}" class="empty-action-btn">
+            ➕ 添加分类
+        </a>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+/* 页面整体样式 */
+.category-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+    padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* 页面头部 */
+.page-header {
+    text-align: center;
+    margin-bottom: 30px;
+    color: white;
+}
+
+.page-title {
+    font-size: 2.5em;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.page-subtitle {
+    font-size: 1.1em;
+    opacity: 0.9;
+    font-weight: 300;
+}
+
+/* 控制区域 */
+.controls-section {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.stats-info {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.stats-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.stats-number {
+    font-size: 2em;
+    font-weight: 700;
+    color: #74b9ff;
+}
+
+.stats-label {
+    font-size: 0.9em;
+    color: #636e72;
+    font-weight: 500;
+}
+
+.action-controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    padding: 10px 20px;
+    border-radius: 25px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.add-btn {
+    background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+}
+
+.add-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 184, 148, 0.4);
+}
+
+.back-btn {
+    background: transparent;
+    color: #0984e3;
+    border-color: #0984e3;
+}
+
+.back-btn:hover {
+    background: #0984e3;
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* 分类网格 */
+.categories-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+/* 分类卡片 */
+.category-card {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.category-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #74b9ff, #0984e3);
+}
+
+.category-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.category-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.category-name {
+    font-size: 1.4em;
+    font-weight: 700;
+    color: #2d3436;
+    margin: 0;
+}
+
+.category-id {
+    padding: 4px 8px;
+    background: #f8f9fa;
+    color: #636e72;
+    border-radius: 8px;
+    font-size: 0.8em;
+    font-weight: 600;
+}
+
+.category-body {
+    margin-bottom: 20px;
+}
+
+.category-description {
+    color: #636e72;
+    line-height: 1.6;
+    margin: 0;
+    font-size: 0.95em;
+}
+
+.category-footer {
+    border-top: 1px solid #e1e8ed;
+    padding-top: 15px;
+}
+
+.category-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.edit-btn, .delete-btn {
+    flex: 1;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    text-align: center;
+}
+
+.edit-btn {
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+    color: white;
+}
+
+.edit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(116, 185, 255, 0.3);
+}
+
+.delete-btn {
+    background: linear-gradient(135deg, #e17055 0%, #d63031 100%);
+    color: white;
+}
+
+.delete-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(225, 112, 85, 0.3);
+}
+
+/* 空状态 */
+.empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.empty-icon {
+    font-size: 4em;
+    margin-bottom: 20px;
+    opacity: 0.7;
+}
+
+.empty-state h3 {
+    color: #2d3436;
+    margin-bottom: 10px;
+    font-size: 1.5em;
+}
+
+.empty-state p {
+    color: #636e72;
+    margin-bottom: 30px;
+    font-size: 1em;
+}
+
+.empty-action-btn {
+    display: inline-block;
+    padding: 12px 30px;
+    background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+    color: white;
+    text-decoration: none;
+    border-radius: 25px;
+    font-weight: 600;
+    font-size: 1em;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+}
+
+.empty-action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 184, 148, 0.4);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .category-page {
+        padding: 15px;
+    }
+    
+    .page-title {
+        font-size: 2em;
+    }
+    
+    .controls-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .categories-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .category-card {
+        padding: 20px;
+    }
+    
+    .category-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .category-actions {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 480px) {
+    .category-page {
+        padding: 10px;
+    }
+    
+    .page-title {
+        font-size: 1.8em;
+    }
+    
+    .category-card {
+        padding: 15px;
+    }
+    
+    .stats-info {
+        justify-content: center;
+    }
+    
+    .action-controls {
+        justify-content: center;
+    }
+}
+</style>
+{% endblock %} 

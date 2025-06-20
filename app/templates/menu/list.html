@@ -1,0 +1,471 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="menu-page">
+    <!-- 页面头部 -->
+    <div class="page-header">
+        <h1 class="page-title">🍔 菜单浏览</h1>
+        <p class="page-subtitle">选择您喜欢的美食，享受美味时光</p>
+    </div>
+
+    <!-- 筛选和操作区域 -->
+    <div class="controls-section">
+        <div class="filter-controls">
+            <form method="get" action="" class="filter-form">
+                <label class="filter-label">分类筛选：</label>
+                <select name="category_id" onchange="this.form.submit()" class="filter-select">
+                    <option value="">全部分类</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if selected_category==cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+        
+        <div class="action-controls">
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('order.cart') }}" class="action-btn cart-btn">
+                    🛒 购物车
+                </a>
+            {% endif %}
+            {% if current_user.is_authenticated and current_user.role == 'admin' %}
+                <a href="{{ url_for('menu.add_menu') }}" class="action-btn admin-btn">
+                    ➕ 添加菜单
+                </a>
+                <a href="{{ url_for('menu.category_list') }}" class="action-btn admin-btn">
+                    📂 分类管理
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- 菜单网格 -->
+    <div class="menu-grid">
+        {% for item in menu_items %}
+        <div class="menu-card">
+            <div class="menu-card-header">
+                <h3 class="menu-item-name">{{ item.name }}</h3>
+                <span class="menu-item-category">{{ item.category_name }}</span>
+            </div>
+            
+            <div class="menu-card-body">
+                <p class="menu-item-description">{{ item.description }}</p>
+                <div class="menu-item-price">¥{{ "%.2f"|format(item.price) }}</div>
+            </div>
+            
+            <div class="menu-card-footer">
+                {% if current_user.is_authenticated %}
+                    <form action="{{ url_for('order.add_to_cart', item_id=item.id) }}" method="post" class="add-to-cart-form">
+                        <div class="quantity-controls">
+                            <label for="quantity-{{ item.id }}" class="quantity-label">数量：</label>
+                            <div class="quantity-input-group">
+                                <button type="button" class="quantity-btn minus" onclick="changeQuantity({{ item.id }}, -1)">-</button>
+                                <input type="number" id="quantity-{{ item.id }}" name="quantity" value="1" min="1" max="99" class="quantity-input">
+                                <button type="button" class="quantity-btn plus" onclick="changeQuantity({{ item.id }}, 1)">+</button>
+                            </div>
+                        </div>
+                        <button type="submit" class="add-to-cart-btn">
+                            🛒 加入购物车
+                        </button>
+                    </form>
+                {% endif %}
+                
+                {% if current_user.is_authenticated and current_user.role == 'admin' %}
+                    <div class="admin-actions">
+                        <a href="{{ url_for('menu.edit_menu', item_id=item.id) }}" class="edit-btn">✏️ 编辑</a>
+                        <form action="{{ url_for('menu.delete_menu', item_id=item.id) }}" method="post" style="display:inline;">
+                            <button type="submit" onclick="return confirm('确定删除这个菜单项吗？')" class="delete-btn">🗑️ 删除</button>
+                        </form>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 空状态 -->
+    {% if not menu_items %}
+    <div class="empty-state">
+        <div class="empty-icon">🍽️</div>
+        <h3>暂无菜单项</h3>
+        <p>当前分类下没有可用的菜单项</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+/* 页面整体样式 */
+.menu-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+    padding: 20px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* 页面头部 */
+.page-header {
+    text-align: center;
+    margin-bottom: 30px;
+    color: white;
+}
+
+.page-title {
+    font-size: 2.5em;
+    font-weight: 700;
+    margin-bottom: 10px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.page-subtitle {
+    font-size: 1.1em;
+    opacity: 0.9;
+    font-weight: 300;
+}
+
+/* 控制区域 */
+.controls-section {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.filter-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-label {
+    font-weight: 600;
+    color: #333;
+}
+
+.filter-select {
+    padding: 8px 15px;
+    border: 2px solid #e1e8ed;
+    border-radius: 8px;
+    background: white;
+    font-size: 0.9em;
+    transition: border-color 0.3s ease;
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: #74b9ff;
+}
+
+.action-controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9em;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.cart-btn {
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(116, 185, 255, 0.3);
+}
+
+.cart-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(116, 185, 255, 0.4);
+}
+
+.admin-btn {
+    background: transparent;
+    color: #0984e3;
+    border-color: #0984e3;
+}
+
+.admin-btn:hover {
+    background: #0984e3;
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* 菜单网格 */
+.menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+/* 菜单卡片 */
+.menu-card {
+    background: white;
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.menu-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #74b9ff, #0984e3);
+}
+
+.menu-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.menu-card-header {
+    margin-bottom: 15px;
+}
+
+.menu-item-name {
+    font-size: 1.4em;
+    font-weight: 700;
+    color: #2d3436;
+    margin-bottom: 5px;
+}
+
+.menu-item-category {
+    display: inline-block;
+    padding: 4px 12px;
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+    color: white;
+    border-radius: 15px;
+    font-size: 0.8em;
+    font-weight: 600;
+}
+
+.menu-card-body {
+    margin-bottom: 20px;
+}
+
+.menu-item-description {
+    color: #636e72;
+    line-height: 1.6;
+    margin-bottom: 15px;
+}
+
+.menu-item-price {
+    font-size: 1.5em;
+    font-weight: 700;
+    color: #e17055;
+}
+
+/* 数量控制 */
+.quantity-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.quantity-label {
+    font-weight: 600;
+    color: #2d3436;
+    font-size: 0.9em;
+}
+
+.quantity-input-group {
+    display: flex;
+    align-items: center;
+    border: 2px solid #e1e8ed;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.quantity-btn {
+    width: 35px;
+    height: 35px;
+    border: none;
+    background: #f8f9fa;
+    color: #495057;
+    font-size: 1.2em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.quantity-btn:hover {
+    background: #74b9ff;
+    color: white;
+}
+
+.quantity-input {
+    width: 50px;
+    height: 35px;
+    border: none;
+    text-align: center;
+    font-size: 0.9em;
+    font-weight: 600;
+    color: #2d3436;
+}
+
+.quantity-input:focus {
+    outline: none;
+}
+
+/* 添加到购物车按钮 */
+.add-to-cart-form {
+    margin-bottom: 15px;
+}
+
+.add-to-cart-btn {
+    width: 100%;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3);
+}
+
+.add-to-cart-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 184, 148, 0.4);
+}
+
+/* 管理员操作 */
+.admin-actions {
+    display: flex;
+    gap: 10px;
+    padding-top: 15px;
+    border-top: 1px solid #e1e8ed;
+}
+
+.edit-btn, .delete-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.8em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    text-align: center;
+}
+
+.edit-btn {
+    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+    color: white;
+}
+
+.edit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(116, 185, 255, 0.3);
+}
+
+.delete-btn {
+    background: linear-gradient(135deg, #e17055 0%, #d63031 100%);
+    color: white;
+}
+
+.delete-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(225, 112, 85, 0.3);
+}
+
+/* 空状态 */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.empty-icon {
+    font-size: 4em;
+    margin-bottom: 20px;
+}
+
+.empty-state h3 {
+    color: #2d3436;
+    margin-bottom: 10px;
+}
+
+.empty-state p {
+    color: #636e72;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .menu-page {
+        padding: 15px;
+    }
+    
+    .page-title {
+        font-size: 2em;
+    }
+    
+    .controls-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .menu-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    .menu-card {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .menu-page {
+        padding: 10px;
+    }
+    
+    .page-title {
+        font-size: 1.8em;
+    }
+    
+    .menu-card {
+        padding: 15px;
+    }
+    
+    .quantity-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+</style>
+
+<script>
+function changeQuantity(itemId, change) {
+    const input = document.getElementById('quantity-' + itemId);
+    let value = parseInt(input.value) + change;
+    
+    // 确保数量在1-99之间
+    if (value < 1) value = 1;
+    if (value > 99) value = 99;
+    
+    input.value = value;
+}
+</script>
+{% endblock %} 

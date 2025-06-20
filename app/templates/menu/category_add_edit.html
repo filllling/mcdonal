@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>{% if action == 'add' %}添加分类{% else %}编辑分类{% endif %}</h2>
+<form method="post">
+    <label>名称：<input type="text" name="name" value="{{ category.name if category else '' }}" required></label><br>
+    <label>描述：<input type="text" name="description" value="{{ category.description if category else '' }}"></label><br>
+    <button type="submit">{% if action == 'add' %}添加{% else %}保存{% endif %}</button>
+    <a href="{{ url_for('menu.category_list') }}">返回分类列表</a>
+</form>
+{% endblock %} 

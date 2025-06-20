@@ -1,0 +1,76 @@
+:root {
+    --primary: #ffcc00;
+    --accent: #d41c1c;
+    --bg: #fffef8;
+    --text: #333;
+    --light-gray: #f3f3f3;
+}
+
+body {
+    margin: 0;
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    background-color: var(--bg);
+    color: var(--text);
+}
+
+.navbar {
+    background-color: var(--primary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.navbar .logo {
+    font-size: 1.5em;
+    font-weight: bold;
+}
+
+.navbar .nav-links a,
+.navbar .username {
+    margin-left: 15px;
+    text-decoration: none;
+    color: #000;
+    font-weight: 500;
+}
+
+.main-container {
+    display: flex;
+    min-height: calc(100vh - 60px);
+}
+
+.sidebar {
+    width: 220px;
+    background-color: var(--light-gray);
+    padding: 20px;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+}
+
+.sidebar a {
+    display: block;
+    color: #333;
+    text-decoration: none;
+    padding: 10px 0;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.sidebar a:hover {
+    color: var(--accent);
+}
+
+.content {
+    flex: 1;
+    padding: 30px;
+    background-color: #fff;
+}
+
+.footer {
+    background-color: var(--light-gray);
+    text-align: center;
+    padding: 15px;
+    font-size: 0.9em;
+    color: #777;
+    margin-top: auto;
+}

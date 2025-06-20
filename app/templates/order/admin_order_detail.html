@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>订单详情</h2>
+<h3>订单信息</h3>
+<p>订单号：{{ order.id }}</p>
+<p>用户：{{ order.username }}</p>
+<p>下单时间：{{ order.order_time }}</p>
+<p>总价：{{ order.total_price }}</p>
+<form method="post" action="{{ url_for('order.update_order_status', order_id=order.id) }}">
+    <label>订单状态：
+        <select name="status">
+            <option value="待制作" {% if order.status == '待制作' %}selected{% endif %}>待制作</option>
+            <option value="制作中" {% if order.status == '制作中' %}selected{% endif %}>制作中</option>
+            <option value="已完成" {% if order.status == '已完成' %}selected{% endif %}>已完成</option>
+            <option value="已取消" {% if order.status == '已取消' %}selected{% endif %}>已取消</option>
+        </select>
+    </label>
+    <label style="margin-left:20px;">支付状态：
+        <select name="payment_status">
+            <option value="未支付" {% if order.payment_status == '未支付' %}selected{% endif %}>未支付</option>
+            <option value="已支付" {% if order.payment_status == '已支付' %}selected{% endif %}>已支付</option>
+        </select>
+    </label>
+    <button type="submit" style="margin-left:20px;">更新状态</button>
+</form>
+
+<h3>商品详情</h3>
+<table border="1" cellpadding="6">
+    <tr>
+        <th>商品名称</th><th>描述</th><th>单价</th><th>数量</th><th>小计</th>
+    </tr>
+    {% for item in order_items %}
+    <tr>
+        <td>{{ item.name }}</td>
+        <td>{{ item.description }}</td>
+        <td>{{ item.unit_price }}</td>
+        <td>{{ item.quantity }}</td>
+        <td>{{ item.subtotal }}</td>
+    </tr>
+    {% endfor %}
+</table>
+<a href="{{ url_for('order.admin_orders') }}">返回订单列表</a>
+{% endblock %} 

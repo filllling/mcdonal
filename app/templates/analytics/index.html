@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block content %}
+<h2>数据分析中心</h2>
+<div class="analytics-nav">
+    <div class="nav-card">
+        <h3>📊 销量统计</h3>
+        <p>查看每日订单数、销售额趋势和商品销量排行榜</p>
+        <a href="{{ url_for('analytics.sales') }}" class="btn">进入销量统计</a>
+    </div>
+    
+    <div class="nav-card">
+        <h3>👥 用户画像</h3>
+        <p>分析用户注册趋势、活跃用户排行和消费分布</p>
+        <a href="{{ url_for('analytics.users') }}" class="btn">进入用户画像</a>
+    </div>
+    
+    <div class="nav-card">
+        <h3>🔍 灵活分析</h3>
+        <p>自定义字段选择、筛选条件、分组聚合和排序</p>
+        <a href="{{ url_for('analytics.flexible') }}" class="btn">进入灵活分析</a>
+    </div>
+    
+    <div class="nav-card">
+        <h3>🔧 变量管理</h3>
+        <p>创建和管理自定义分析变量</p>
+        <a href="{{ url_for('analytics.variables') }}" class="btn">进入变量管理</a>
+    </div>
+</div>
+
+<style>
+.analytics-nav {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.nav-card {
+    border: 1px solid #ddd;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.nav-card h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+.nav-card p {
+    color: #666;
+    margin-bottom: 20px;
+}
+
+.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+}
+
+.btn:hover {
+    background-color: #0056b3;
+}
+</style>
+{% endblock %} 
